@@ -11,7 +11,7 @@ public class Cache<Key: Hashable, Value> {
     private let wrapped = NSCache<WrappedKey, Entry>()
     private let config: Config
     
-    init(config: Config) {
+    public init(config: Config) {
         self.config = config
         wrapped.countLimit = config.countLimit
         wrapped.totalCostLimit = config.memoryLimit
