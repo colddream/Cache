@@ -10,6 +10,7 @@ import Foundation
 public class Cache<Key: Hashable, Value> {
     private let wrapped = NSCache<WrappedKey, Entry>()
     private let config: Config
+    private let lock = NSLock()
     
     public init(config: Config) {
         self.config = config
@@ -22,6 +23,9 @@ public class Cache<Key: Hashable, Value> {
 
 extension Cache: Cacheable {
     public func set(_ value: Value, for key: Key) {
+        lock.lock()
+        defer { lock.unlock() }
+        
         if config.showLog {
             print("Set value: \(value) for key: \(key)")
         }
@@ -31,6 +35,9 @@ extension Cache: Cacheable {
     }
     
     public func value(for key: Key) -> Value? {
+        lock.lock()
+        defer { lock.unlock() }
+        
         if config.showLog {
             print("Get value for key: \(key)")
         }
@@ -40,6 +47,9 @@ extension Cache: Cacheable {
     }
     
     public func removeValue(for key: Key) {
+        lock.lock()
+        defer { lock.unlock() }
+        
         if config.showLog {
             print("Remove value for key: \(key)")
         }
@@ -48,6 +58,9 @@ extension Cache: Cacheable {
     }
     
     public func removeAll() {
+        lock.lock()
+        defer { lock.unlock() }
+        
         if config.showLog {
             print("Remove All")
         }
@@ -79,11 +92,13 @@ public extension Cache {
         let countLimit: Int     // limit number of cache items
         let memoryLimit: Int    // limit memory cache in bytes (100 * 1024 * 1024 = 100MB)
         let showLog: Bool       // To show log or not
+        let useLock: Bool       // To lock for thread-safe
         
-        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false) {
+        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false, useLock: Bool = false) {
             self.countLimit = countLimit
             self.memoryLimit = memoryLimit
             self.showLog = showLog
+            self.useLock = useLock
         }
     }
 }
