@@ -2,7 +2,7 @@ import XCTest
 @testable import Cache
 
 final class CacheTests: XCTestCase {
-    var cache: Cache<String, Int>!
+    var cache: (any Cacheable<String, Int>)!
     
     override func setUpWithError() throws {
         cache = Cache(config: .init(countLimit: 5, memoryLimit: 5 * 1024 * 1024))
