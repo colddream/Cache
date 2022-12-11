@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol Cacheable {
+public protocol Cacheable {
     associatedtype Key
     associatedtype Value
     
