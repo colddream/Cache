@@ -21,25 +21,41 @@ public class Cache<Key: Hashable, Value> {
 // MARK: - Cacheable
 
 extension Cache: Cacheable {
-    func set(_ value: Value, for key: Key) {
+    public func set(_ value: Value, for key: Key) {
+        if config.showLog {
+            print("Set value: \(value) for key: \(key)")
+        }
+        
         let entry = Entry(value: value)
         wrapped.setObject(entry, forKey: WrappedKey(key: key))
     }
     
-    func value(for key: Key) -> Value? {
+    public func value(for key: Key) -> Value? {
+        if config.showLog {
+            print("Get value for key: \(key)")
+        }
+        
         let entry = wrapped.object(forKey: WrappedKey(key: key))
         return entry?.value
     }
     
-    func removeValue(for key: Key) {
+    public func removeValue(for key: Key) {
+        if config.showLog {
+            print("Remove value for key: \(key)")
+        }
+        
         wrapped.removeObject(forKey: WrappedKey(key: key))
     }
     
-    func removeAll() {
+    public func removeAll() {
+        if config.showLog {
+            print("Remove All")
+        }
+        
         wrapped.removeAllObjects()
     }
     
-    subscript(key: Key) -> Value? {
+    public subscript(key: Key) -> Value? {
         get {
             return value(for: key)
         }
@@ -62,10 +78,12 @@ public extension Cache {
     struct Config {
         let countLimit: Int     // limit number of cache items
         let memoryLimit: Int    // limit memory cache in bytes (100 * 1024 * 1024 = 100MB)
+        let showLog: Bool       // To show log or not
         
-        public init(countLimit: Int, memoryLimit: Int) {
+        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false) {
             self.countLimit = countLimit
             self.memoryLimit = memoryLimit
+            self.showLog = showLog
         }
     }
 }
