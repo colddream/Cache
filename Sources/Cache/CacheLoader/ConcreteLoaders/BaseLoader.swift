@@ -8,7 +8,7 @@
 import UIKit
 
 /// We can extend this BaseLoader (instead of extending directly ImageLoader protocol) to avoid spending time to create boilerplate properties (cache, executeQueue, ...)
-public class BaseLoader<Value>: CacheLoader {
+open class BaseLoader<Value>: CacheLoader {
     // MARK: - CacheLoader methods
     
     public var cache: any Cacheable<URL, Value>
@@ -33,7 +33,7 @@ public class BaseLoader<Value>: CacheLoader {
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
     
-    public func value(from data: Data) -> Value? {
+    open func value(from data: Data) -> Value? {
         fatalError("Need to implement from sub class")
     }
 }
