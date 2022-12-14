@@ -40,7 +40,7 @@ extension CacheLoader {
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
         // Make sure the old operations will be canceled
-        self.executeQueue.cancelAllOperations()
+        self.cancelAll()
         
         // Setup again
         self.cache = cache
