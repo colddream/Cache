@@ -19,6 +19,10 @@ open class BaseLoader<Value>: CacheLoader {
     
     public var session: URLSession
     
+    public var lock: NSLock = NSLock()
+    
+    public var serialQueue: DispatchQueue
+    
     public var loadingUrls: [URL : Bool] = [:]
     
     public var pendingHandlers: [URL : [Handler]] = [:]
@@ -30,6 +34,7 @@ open class BaseLoader<Value>: CacheLoader {
         self.cache = cache
         self.executeQueue = executeQueue
         self.receiveQueue = receiveQueue
+        self.serialQueue = DispatchQueue(label: "LoaderSerialQueue")
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
     

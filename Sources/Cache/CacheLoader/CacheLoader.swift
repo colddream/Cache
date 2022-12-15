@@ -19,6 +19,8 @@ public protocol CacheLoader: AnyObject {
     var receiveQueue: OperationQueue { get set }
     var session: URLSession { get set }
     
+    var lock: NSLock { get set }
+    var serialQueue: DispatchQueue { get set }
     var loadingUrls: [URL: Bool] { get set }
     var pendingHandlers: [URL: [Handler]] { get set }
     
@@ -39,8 +41,15 @@ extension CacheLoader {
     public func config(cache: any Cacheable<URL, Value>,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        
         // Make sure the old operations will be canceled
-        self.cancelAll()
+        pendingHandlers.removeAll()
+        loadingUrls.removeAll()
+        executeQueue.cancelAllOperations()
         
         // Setup again
         self.cache = cache
@@ -65,20 +74,27 @@ extension CacheLoader {
             return
         }
         
-        // Check if url is already loading
-        if loadingUrls[url] == true {
-            logPrint("[CacheLoader] waiting previous loading value", isLog: isLog)
-            if keepOnlyLatestHandler {
-                pendingHandlers[url] = [completion]
-            } else {
-                let preHandlers = pendingHandlers[url] ?? []
-                pendingHandlers[url] = preHandlers + [completion]
-            }
-            return
+        lock.lock()
+        defer {
+            lock.unlock()
         }
+//        serialQueue.sync {
+            // Check if url is already loading
+            if loadingUrls[url] == true {
+                logPrint("[CacheLoader] waiting previous loading value", isLog: isLog)
+                if keepOnlyLatestHandler {
+                    pendingHandlers[url] = [completion]
+                } else {
+                    let preHandlers = pendingHandlers[url] ?? []
+                    pendingHandlers[url] = preHandlers + [completion]
+                }
+                return
+            }
+            
+            loadingUrls[url] = true
+            pendingHandlers[url] = [completion]
+//        }
         
-        loadingUrls[url] = true
-        pendingHandlers[url] = [completion]
         logPrint("[CacheLoader] Start get value from server (\(url.absoluteString))", isLog: isLog)
         let operation = DataTaskOperation(session: session, url: url) { [weak self] data, response, error in
             guard let self = self else {
@@ -121,6 +137,10 @@ extension CacheLoader {
     
     /// Cancel all operations
     public func cancelAll() {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
         pendingHandlers.removeAll()
         loadingUrls.removeAll()
         executeQueue.cancelAllOperations()
@@ -136,11 +156,22 @@ extension CacheLoader {
 
 extension CacheLoader {
     private func handleResult(_ result: Result<Value, Error>, for url: URL) {
-        if let handlers = pendingHandlers[url] {
-            pendingHandlers[url] = nil
-            handlers.forEach { $0(result, url) }
+        lock.lock()
+        defer {
+            lock.unlock()
         }
-        loadingUrls[url] = nil
+        var handlers: [Handler] = []
+//        serialQueue.sync {
+            loadingUrls[url] = nil
+            if pendingHandlers[url] == nil {
+                return
+            }
+            
+            handlers = pendingHandlers[url]!
+            pendingHandlers[url] = nil
+//        }
+        
+        handlers.forEach { $0(result, url) }
     }
     
     private func logPrint(_ items: Any..., separator: String = " ", terminator: String = "\n", isLog: Bool) {
