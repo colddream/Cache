@@ -48,21 +48,21 @@ final class CacheTests: XCTestCase {
     
     func testImageLoader() throws {
         let waitExpectation = expectation(description: "Waiting")
-        
+
         self.loadImages {
             waitExpectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 5)
     }
-    
+
     func testImageLoaderRaceCondition() throws {
         let waitExpectation = expectation(description: "Waiting")
-        
+
         let concurrentQueue = DispatchQueue(label: "Testing", attributes: .concurrent)
-        
+
         let maxBlockCount = 100
-        
+
         for i in 0..<maxBlockCount {
             concurrentQueue.async {
                 self.loadImages {
@@ -72,7 +72,7 @@ final class CacheTests: XCTestCase {
                 }
             }
         }
-        
+
         waitForExpectations(timeout: 80)
     }
     
@@ -81,6 +81,7 @@ final class CacheTests: XCTestCase {
         let imageUrls = [
             "https://res.cloudinary.com/demo/basketball_shot.jpg",
             "https://res.cloudinary.com/demo/basketball_shot.jpg",
+            "https://live.staticflickr.com/2912/13981352255_fc59cfdba2_b.jpg",
         ]
         let imageUrls2 = [
             "https://live.staticflickr.com/2912/13981352255_fc59cfdba2_b.jpg",

@@ -19,8 +19,7 @@ public protocol CacheLoader: AnyObject {
     var receiveQueue: OperationQueue { get set }
     var session: URLSession { get set }
     
-    var lock: NSLock { get set }
-    var serialQueue: DispatchQueue { get set }
+    var safeQueue: DispatchQueue { get set }
     var loadingUrls: [URL: Bool] { get set }
     var pendingHandlers: [URL: [Handler]] { get set }
     
@@ -41,15 +40,12 @@ extension CacheLoader {
     public func config(cache: any Cacheable<URL, Value>,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-        
         // Make sure the old operations will be canceled
-        pendingHandlers.removeAll()
-        loadingUrls.removeAll()
-        executeQueue.cancelAllOperations()
+        self.executeQueue.cancelAllOperations()
+        safeQueue.sync {
+            self.pendingHandlers.removeAll()
+            self.loadingUrls.removeAll()
+        }
         
         // Setup again
         self.cache = cache
@@ -69,56 +65,56 @@ extension CacheLoader {
                           isLog: Bool = false,
                           completion: @escaping Handler) {
         if let value = cache[url] {
-            logPrint("[CacheLoader] value from cache (\(url.absoluteString))", isLog: isLog)
-            completion(.success(value), url)
+            receiveQueue.addOperation { [weak self] in
+                self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))", isLog: isLog)
+                completion(.success(value), url)
+            }
             return
         }
         
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-//        serialQueue.sync {
+        // Use async with .barrier is supper fast compare with using sync of concurent safeQueue
+        // And this way also faster than using serial safeQueue sync/async
+        safeQueue.async(flags: .barrier) {
             // Check if url is already loading
-            if loadingUrls[url] == true {
-                logPrint("[CacheLoader] waiting previous loading value", isLog: isLog)
+            if self.loadingUrls[url] == true {
+                self.logPrint("[CacheLoader] waiting previous loading value", isLog: isLog)
                 if keepOnlyLatestHandler {
-                    pendingHandlers[url] = [completion]
+                    self.pendingHandlers[url] = [completion]
                 } else {
-                    let preHandlers = pendingHandlers[url] ?? []
-                    pendingHandlers[url] = preHandlers + [completion]
+                    let preHandlers = self.pendingHandlers[url] ?? []
+                    self.pendingHandlers[url] = preHandlers + [completion]
                 }
                 return
             }
             
-            loadingUrls[url] = true
-            pendingHandlers[url] = [completion]
-//        }
-        
-        logPrint("[CacheLoader] Start get value from server (\(url.absoluteString))", isLog: isLog)
-        let operation = DataTaskOperation(session: session, url: url) { [weak self] data, response, error in
-            guard let self = self else {
-                return
-            }
+            self.loadingUrls[url] = true
+            self.pendingHandlers[url] = [completion]
             
-            let result: Result<Value, Error>
-            
-            if let error = error {
-                result = .failure(error)
+            self.logPrint("[CacheLoader] Start get value from server (\(url.absoluteString))", isLog: isLog)
+            let operation = DataTaskOperation(session: self.session, url: url) { [weak self] data, response, error in
+                guard let self = self else {
+                    return
+                }
                 
-            } else if let data = data, let value = self.value(from: data) {
-                self.cache[url] = value
-                self.logPrint("[CacheLoader] value from server (\(url.absoluteString))", isLog: isLog)
-                result = .success(value)
+                let result: Result<Value, Error>
                 
-            } else {
-                let error = CustomError(message: "Invalid Value Data")
-                result = .failure(error)
+                if let error = error {
+                    result = .failure(error)
+                    
+                } else if let data = data, let value = self.value(from: data) {
+                    self.cache[url] = value
+                    self.logPrint("[CacheLoader] value from server (\(url.absoluteString))", isLog: isLog)
+                    result = .success(value)
+                    
+                } else {
+                    let error = CustomError(message: "Invalid Value Data")
+                    result = .failure(error)
+                }
+                
+                self.handleResult(result, for: url)
             }
-
-            self.handleResult(result, for: url)
+            self.executeQueue.addOperation(operation)
         }
-        executeQueue.addOperation(operation)
     }
     
     /// Remove all pending handlers that you don't want to notify to them anymore
@@ -126,24 +122,24 @@ extension CacheLoader {
     ///   - url: url to find pending handlers to remove
     ///   - keepLatestHandler: should keep latest handler or not
     public func removePendingHandlers(for url: URL, keepLatestHandler: Bool = false) {
-        if let handlers = self.pendingHandlers[url], handlers.count > 0 {
-            if keepLatestHandler {
-                self.pendingHandlers[url] = [handlers.last!]
-            } else {
-                self.pendingHandlers[url] = nil
+        safeQueue.sync {
+            if let handlers = self.pendingHandlers[url], handlers.count > 0 {
+                if keepLatestHandler {
+                    self.pendingHandlers[url] = [handlers.last!]
+                } else {
+                    self.pendingHandlers[url] = nil
+                }
             }
         }
     }
     
     /// Cancel all operations
     public func cancelAll() {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-        pendingHandlers.removeAll()
-        loadingUrls.removeAll()
         executeQueue.cancelAllOperations()
+        safeQueue.sync {
+            pendingHandlers.removeAll()
+            loadingUrls.removeAll()
+        }
     }
     
     /// Remove all cache values
@@ -156,12 +152,8 @@ extension CacheLoader {
 
 extension CacheLoader {
     private func handleResult(_ result: Result<Value, Error>, for url: URL) {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
         var handlers: [Handler] = []
-//        serialQueue.sync {
+        safeQueue.sync {
             loadingUrls[url] = nil
             if pendingHandlers[url] == nil {
                 return
@@ -169,7 +161,7 @@ extension CacheLoader {
             
             handlers = pendingHandlers[url]!
             pendingHandlers[url] = nil
-//        }
+        }
         
         handlers.forEach { $0(result, url) }
     }

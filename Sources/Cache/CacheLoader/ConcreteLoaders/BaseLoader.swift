@@ -21,7 +21,7 @@ open class BaseLoader<Value>: CacheLoader {
     
     public var lock: NSLock = NSLock()
     
-    public var serialQueue: DispatchQueue
+    public var safeQueue: DispatchQueue
     
     public var loadingUrls: [URL : Bool] = [:]
     
@@ -34,7 +34,7 @@ open class BaseLoader<Value>: CacheLoader {
         self.cache = cache
         self.executeQueue = executeQueue
         self.receiveQueue = receiveQueue
-        self.serialQueue = DispatchQueue(label: "LoaderSerialQueue")
+        self.safeQueue = DispatchQueue(label: "LoaderSafeQueue", attributes: .concurrent)
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
     
