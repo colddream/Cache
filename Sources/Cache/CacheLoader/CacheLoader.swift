@@ -14,19 +14,35 @@ public protocol CacheLoader: AnyObject {
     associatedtype Value
     typealias Handler = (Result<Value, Error>, URL) -> Void
     
+    // Cache type to get/store value to cache
     var cache: any Cacheable<URL, Value> { get set }
+    
+    // queue that use to excute to data task operation
     var executeQueue: OperationQueue { get set }
+    
+    // queue that use for callback result (Ex: main queue)
     var receiveQueue: OperationQueue { get set }
+    
+    // session
     var session: URLSession { get set }
     
+    // NOTE: this should be concurrent queue otherwise will crash or performance issue
     var safeQueue: DispatchQueue { get set }
+    
+    // This stores loading urls to use to avoid duplicate request
     var loadingUrls: [URL: Bool] { get set }
+    
+    // This stores pending handlers for the same url (Ex: we may call to load value from url more than one time)
     var pendingHandlers: [URL: [Handler]] { get set }
     
+    // Get value from data
     func value(from data: Data) -> Value?
 }
 
 extension CacheLoader {
+    /// Regenerate session based on receiveQueue (Ex: main queue)
+    /// - Parameter receiveQueue: queue for callback result of data task operation
+    /// - Returns: return session
     public static func regenerateSession(receiveQueue: OperationQueue) -> URLSession {
         let config = URLSessionConfiguration.default
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: receiveQueue)
@@ -37,6 +53,11 @@ extension CacheLoader {
 // MARK: - public methods
 
 extension CacheLoader {
+    /// Config Loader with
+    /// - Parameters:
+    ///   - cache: cache type
+    ///   - executeQueue: execute queue for data task operations
+    ///   - receiveQueue: callback result queue
     public func config(cache: any Cacheable<URL, Value>,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
@@ -151,6 +172,10 @@ extension CacheLoader {
 // MARK: - Helper methods
 
 extension CacheLoader {
+    /// Handle result of data task operations
+    /// - Parameters:
+    ///   - result: result to handle
+    ///   - url: server url that using in data task  of the result
     private func handleResult(_ result: Result<Value, Error>, for url: URL) {
         var handlers: [Handler] = []
         safeQueue.sync {
@@ -166,6 +191,7 @@ extension CacheLoader {
         handlers.forEach { $0(result, url) }
     }
     
+    /// Log
     private func logPrint(_ items: Any..., separator: String = " ", terminator: String = "\n", isLog: Bool) {
         if isLog {
             print(items, separator: separator, terminator: terminator)

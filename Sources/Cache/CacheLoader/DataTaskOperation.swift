@@ -47,6 +47,7 @@ class DataTaskOperation: Operation {
     
     // MARK: - Override methods
     
+    /// Start
     override func start() {
         // At no time in your start method should you ever call super (https://developer.apple.com/documentation/foundation/nsoperation?language=objc#1661262)
         super.start()
@@ -69,6 +70,7 @@ class DataTaskOperation: Operation {
         self.task.resume()
     }
     
+    /// Cancel
     override func cancel() {
         super.cancel()
         
