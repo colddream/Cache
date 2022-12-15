@@ -38,12 +38,12 @@ final class CacheTests: XCTestCase {
         XCTAssert(cache.value(for: "Key5") == 5)
         XCTAssert(cache.value(for: "Key6") == 6)
         
-        cache.set(11, for: "Key1")
+        cache["Key1"] = 11
         cache.set(7, for: "Key6")
         
         XCTAssert(cache.value(for: "Key1") == 11)
         XCTAssert(cache.value(for: "Key2") == nil)
-        XCTAssert(cache.value(for: "Key6") == 7)        
+        XCTAssert(cache["Key6"] == 7)
     }
     
     func testImageLoader() throws {
