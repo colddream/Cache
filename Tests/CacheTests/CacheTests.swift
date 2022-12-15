@@ -75,6 +75,26 @@ final class CacheTests: XCTestCase {
         
         waitForExpectations(timeout: 80)
     }
+    
+    func testImageLoaderDeadLock() {
+        let waitExpectation = expectation(description: "Waiting")
+        let imageUrls = [
+            "https://res.cloudinary.com/demo/basketball_shot.jpg",
+            "https://res.cloudinary.com/demo/basketball_shot.jpg",
+        ]
+        let imageUrls2 = [
+            "https://live.staticflickr.com/2912/13981352255_fc59cfdba2_b.jpg",
+            "https://res.cloudinary.com/demo/image/upload/if_ar_gt_3:4_and_w_gt_300_and_h_gt_200,c_crop,w_300,h_200/sample.jpg"
+        ]
+        
+        self.loadImages(imageUrls: imageUrls) {
+            self.loadImages(imageUrls: imageUrls2) {
+                waitExpectation.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 80)
+    }
 }
 
 // MARK: - Helper methods
