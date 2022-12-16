@@ -62,7 +62,7 @@ class SampleLoader: BaseLoader<Sample> {
                                      receiveQueue: .main)
     
     override func value(from data: Data) -> Sample? {
-        return Sample()
+        return try? JSONDecoder().decode(Sample.self, from: data)
     }
     
     override init(cache: any Cacheable<URL, Sample>, executeQueue: OperationQueue, receiveQueue: OperationQueue = .main) {
@@ -70,6 +70,11 @@ class SampleLoader: BaseLoader<Sample> {
     }
 }
 
+// Sample model for that json: https://tools.learningcontainer.com/sample-json.json
 struct Sample: Codable {
+    let firstName: String
+    let lastName: String
+    let gender: String
+    let age: Int
 }
 ```
