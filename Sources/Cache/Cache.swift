@@ -93,13 +93,11 @@ public extension Cache {
         let countLimit: Int     // limit number of cache items
         let memoryLimit: Int    // limit memory cache in bytes (100 * 1024 * 1024 = 100MB)
         let showLog: Bool       // To show log or not
-        let useLock: Bool       // To lock for thread-safe
         
-        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false, useLock: Bool = false) {
+        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false) {
             self.countLimit = countLimit
             self.memoryLimit = memoryLimit
             self.showLog = showLog
-            self.useLock = useLock
         }
     }
 }
