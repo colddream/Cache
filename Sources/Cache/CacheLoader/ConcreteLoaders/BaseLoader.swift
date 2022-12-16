@@ -8,10 +8,10 @@
 import UIKit
 
 /// We can extend this BaseLoader (instead of extending directly ImageLoader protocol) to avoid spending time to create boilerplate properties (cache, executeQueue, ...)
-open class BaseLoader<Value>: CacheLoader {
+open class BaseLoader<Key, Value>: CacheLoader {
     // MARK: - CacheLoader methods
     
-    public var cache: any Cacheable<URL, Value>
+    public var cache: any Cacheable<Key, Value>
     
     public var executeQueue: OperationQueue
     
@@ -28,7 +28,7 @@ open class BaseLoader<Value>: CacheLoader {
     public var pendingHandlers: [URL : [Handler]] = [:]
     
     // Init
-    public init(cache: any Cacheable<URL, Value>,
+    public init(cache: any Cacheable<Key, Value>,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
         self.cache = cache
@@ -37,6 +37,10 @@ open class BaseLoader<Value>: CacheLoader {
         let prefix = String(describing: Self.self)
         self.safeQueue = DispatchQueue(label: "\(prefix)_LoaderSafeQueue", attributes: .concurrent)
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
+    }
+    
+    open func key(from url: URL) -> Key {
+        fatalError("Need to implement from sub class")
     }
     
     open func value(from data: Data) -> Value? {

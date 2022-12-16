@@ -11,11 +11,12 @@ import UIKit
 /// This protocol to support to get value (from data from the server's url) and cache using Cache
 ///
 public protocol CacheLoader: AnyObject {
+    associatedtype Key
     associatedtype Value
     typealias Handler = (Result<Value, Error>, URL) -> Void
     
     // Cache type to get/store value to cache
-    var cache: any Cacheable<URL, Value> { get set }
+    var cache: any Cacheable<Key, Value> { get set }
     
     // queue that use to excute to data task operation
     var executeQueue: OperationQueue { get set }
@@ -34,6 +35,9 @@ public protocol CacheLoader: AnyObject {
     
     // This stores pending handlers for the same url (Ex: we may call to load value from url more than one time)
     var pendingHandlers: [URL: [Handler]] { get set }
+    
+    // Get key from url
+    func key(from url: URL) -> Key
     
     // Get value from data
     func value(from data: Data) -> Value?
@@ -58,7 +62,7 @@ extension CacheLoader {
     ///   - cache: cache type
     ///   - executeQueue: execute queue for data task operations
     ///   - receiveQueue: callback result queue
-    public func config(cache: any Cacheable<URL, Value>,
+    public func config(cache: any Cacheable<Key, Value>,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
         // Make sure the old operations will be canceled
@@ -85,7 +89,8 @@ extension CacheLoader {
                           keepOnlyLatestHandler: Bool = false,
                           isLog: Bool = false,
                           completion: @escaping Handler) {
-        if let value = cache[url] {
+        let key = self.key(from: url)
+        if let value = cache[key] {
             receiveQueue.addOperation { [weak self] in
                 self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))", isLog: isLog)
                 completion(.success(value), url)
@@ -123,7 +128,7 @@ extension CacheLoader {
                     result = .failure(error)
                     
                 } else if let data = data, let value = self.value(from: data) {
-                    self.cache[url] = value
+                    self.cache[key] = value
                     self.logPrint("[CacheLoader] value from server (\(url.absoluteString))", isLog: isLog)
                     result = .success(value)
                     
@@ -139,7 +144,7 @@ extension CacheLoader {
     }
     
     public func cacheValue(for url: URL) -> Value? {
-        return cache.value(for: url)
+        return cache.value(for: key(from: url))
     }
     
     /// Remove all pending handlers that you don't want to notify to them anymore

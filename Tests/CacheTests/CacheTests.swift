@@ -201,10 +201,14 @@ extension CacheTests {
     }
 }
 
-class SampleLoader: BaseLoader<Sample> {
+class SampleLoader: BaseLoader<URL, Sample> {
     static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, memoryLimit: 50 * 1024 * 1024)),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)
+    
+    override func key(from url: URL) -> URL {
+        return url
+    }
     
     override func value(from data: Data) -> Sample? {
         return try? JSONDecoder().decode(Sample.self, from: data)
