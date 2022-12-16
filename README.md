@@ -54,6 +54,12 @@ imageLoader.loadValue(from: url, keepOnlyLatestHandler: true, isLog: true) { res
 }
 ```
 
+You can get cache image dirrectly if exist as follows:
+
+```swift
+let cacheImage = ImageLoader.shared.cacheValue(for: url)
+```
+
 Use also can create your own Cache Loader based on **CacheLoader** protocol or **BaseLoader** class as follows:
 ```swift
 class SampleLoader: BaseLoader<Sample> {

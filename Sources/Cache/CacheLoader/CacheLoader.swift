@@ -138,6 +138,10 @@ extension CacheLoader {
         }
     }
     
+    public func cacheValue(for url: URL) -> Value? {
+        return cache.value(for: url)
+    }
+    
     /// Remove all pending handlers that you don't want to notify to them anymore
     /// - Parameters:
     ///   - url: url to find pending handlers to remove
