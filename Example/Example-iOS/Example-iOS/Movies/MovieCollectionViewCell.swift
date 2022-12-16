@@ -25,7 +25,7 @@ class MovieCollectionViewCell: UICollectionViewCell {
                 }
                 
                 print("[Movie Cell] Start load image")
-                ImageLoader.shared.loadValue(from: url, keepOnlyLatestHandler: true, isLog: true) { [weak self] result, resultUrl in
+                ImageLoader.shared.loadValue(from: url, keepOnlyLatestHandler: true, isLog: true, keyGenerator: { url }) { [weak self] result, resultUrl in
                     guard let self = self else {
                         return
                     }

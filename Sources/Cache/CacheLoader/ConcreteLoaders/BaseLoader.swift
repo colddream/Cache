@@ -39,10 +39,6 @@ open class BaseLoader<Key, Value>: CacheLoader {
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
     
-    open func key(from url: URL) -> Key {
-        fatalError("Need to implement from sub class")
-    }
-    
     open func value(from data: Data) -> Value? {
         fatalError("Need to implement from sub class")
     }

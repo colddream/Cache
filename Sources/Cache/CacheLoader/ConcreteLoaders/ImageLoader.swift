@@ -12,10 +12,6 @@ public class ImageLoader: BaseLoader<URL, UIImage> {
                                            executeQueue: ImageLoader.defaultExecuteQueue(),
                                            receiveQueue: .main)
     
-    public override func key(from url: URL) -> URL {
-        return url
-    }
-    
     public override func value(from data: Data) -> UIImage? {
         return UIImage(data: data)
     }

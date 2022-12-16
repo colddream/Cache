@@ -8,7 +8,7 @@
 import UIKit
 import Cache
 
-class SampleLoader: BaseLoader<Sample> {
+class SampleLoader: BaseLoader<URL, Sample> {
     static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, memoryLimit: 50 * 1024 * 1024)),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)

@@ -14,6 +14,7 @@ public protocol CacheLoader: AnyObject {
     associatedtype Key
     associatedtype Value
     typealias Handler = (Result<Value, Error>, URL) -> Void
+    typealias KeyGeneratorHandler = () -> Key
     
     // Cache type to get/store value to cache
     var cache: any Cacheable<Key, Value> { get set }
@@ -35,9 +36,6 @@ public protocol CacheLoader: AnyObject {
     
     // This stores pending handlers for the same url (Ex: we may call to load value from url more than one time)
     var pendingHandlers: [URL: [Handler]] { get set }
-    
-    // Get key from url
-    func key(from url: URL) -> Key
     
     // Get value from data
     func value(from data: Data) -> Value?
@@ -88,8 +86,9 @@ extension CacheLoader {
     public func loadValue(from url: URL,
                           keepOnlyLatestHandler: Bool = false,
                           isLog: Bool = false,
+                          keyGenerator: KeyGeneratorHandler,
                           completion: @escaping Handler) {
-        let key = self.key(from: url)
+        let key = keyGenerator()
         if let value = cache[key] {
             receiveQueue.addOperation { [weak self] in
                 self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))", isLog: isLog)
@@ -143,8 +142,8 @@ extension CacheLoader {
         }
     }
     
-    public func cacheValue(for url: URL) -> Value? {
-        return cache.value(for: key(from: url))
+    public func cacheValue(for key: Key) -> Value? {
+        return cache.value(for: key)
     }
     
     /// Remove all pending handlers that you don't want to notify to them anymore
