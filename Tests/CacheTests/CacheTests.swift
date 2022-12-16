@@ -13,15 +13,13 @@ final class CacheTests: XCTestCase {
         // Init ImageLoader
         let taskQueue = OperationQueue()
         taskQueue.maxConcurrentOperationCount = 6
-        loader = ImageLoader(cache: Cache(config: .init(countLimit: 100, memoryLimit: 100 * 1024 * 1024)),
-                             executeQueue: taskQueue,
-                             receiveQueue: .main)
+        loader = ImageLoader(cache: Cache(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+                             executeQueue: taskQueue, receiveQueue: .main)
         
         let taskQueue2 = OperationQueue()
         taskQueue2.maxConcurrentOperationCount = 6
-        sampleLoader = SampleLoader(cache: Cache(config: .init(countLimit: 100, memoryLimit: 100 * 1024 * 1024)),
-                                    executeQueue: taskQueue2,
-                                    receiveQueue: .main)
+        sampleLoader = SampleLoader(cache: Cache(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+                                    executeQueue: taskQueue2, receiveQueue: .main)
     }
     
     override func tearDownWithError() throws {
@@ -118,7 +116,7 @@ extension CacheTests {
 extension CacheTests {
     func testSampleLoaderRaceCondition() {
         let waitExpectation = expectation(description: "Waiting")
-        
+
         let sampleUrls = [
             "https://tools.learningcontainer.com/sample-json.json",
             "https://tools.learningcontainer.com/sample-json.json",
@@ -127,7 +125,7 @@ extension CacheTests {
         ]
         let concurrentQueue = DispatchQueue(label: "TestingSample", attributes: .concurrent)
         let maxBlockCount = 100
-        
+
         for i in 0..<maxBlockCount {
             concurrentQueue.async {
                 self.loadSamples(sampleUrls) {
@@ -137,7 +135,7 @@ extension CacheTests {
                 }
             }
         }
-        
+
         waitForExpectations(timeout: 10)
     }
 }

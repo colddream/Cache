@@ -34,7 +34,8 @@ open class BaseLoader<Value>: CacheLoader {
         self.cache = cache
         self.executeQueue = executeQueue
         self.receiveQueue = receiveQueue
-        self.safeQueue = DispatchQueue(label: "LoaderSafeQueue", attributes: .concurrent)
+        let prefix = String(describing: Self.self)
+        self.safeQueue = DispatchQueue(label: "\(prefix)_LoaderSafeQueue", attributes: .concurrent)
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
     
