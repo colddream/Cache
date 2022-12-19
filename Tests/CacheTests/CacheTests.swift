@@ -8,22 +8,24 @@ final class CacheTests: XCTestCase {
     
     override func setUpWithError() throws {
         // Init Cache
-        cache = Cache(config: .init(countLimit: 5, memoryLimit: 5 * 1024 * 1024))
+        cache = MemoryStorage(config: .init(countLimit: 5, totalCostLimit: 5 * 1024 * 1024))
         
         // Init ImageLoader
         let taskQueue = OperationQueue()
         taskQueue.maxConcurrentOperationCount = 6
-        loader = ImageLoader(cache: Cache(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+        loader = ImageLoader(cache: Cache(name: "ImageLoader"),
+                             config: .init(showLog: true, keepOnlyLatestHandler: false),
                              executeQueue: taskQueue, receiveQueue: .main)
         
         let taskQueue2 = OperationQueue()
         taskQueue2.maxConcurrentOperationCount = 6
-        sampleLoader = SampleLoader(cache: Cache(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+        sampleLoader = SampleLoader(cache: Cache(name: "sampleLoader"),
+                                    config: .init(showLog: true, keepOnlyLatestHandler: false),
                                     executeQueue: taskQueue2, receiveQueue: .main)
     }
     
     override func tearDownWithError() throws {
-        cache.removeAll()
+        try cache.removeAll()
         cache = nil
         sampleLoader = nil
     }
@@ -33,25 +35,25 @@ final class CacheTests: XCTestCase {
 
 extension CacheTests {
     func testCache() throws {
-        cache.set(1, for: "Key1")
-        cache.set(2, for: "Key2")
-        cache.set(3, for: "Key3")
-        cache.set(4, for: "Key4")
-        cache.set(5, for: "Key5")
-        cache.set(6, for: "Key6")
+        try cache.set(1, for: "Key1")
+        try cache.set(2, for: "Key2")
+        try cache.set(3, for: "Key3")
+        try cache.set(4, for: "Key4")
+        try cache.set(5, for: "Key5")
+        try cache.set(6, for: "Key6")
 
-        XCTAssert(cache.value(for: "Key1") == nil)
-        XCTAssert(cache.value(for: "Key2") == 2)
-        XCTAssert(cache.value(for: "Key3") == 3)
-        XCTAssert(cache.value(for: "Key4") == 4)
-        XCTAssert(cache.value(for: "Key5") == 5)
-        XCTAssert(cache.value(for: "Key6") == 6)
+        XCTAssert(try cache.value(for: "Key1") == nil)
+        XCTAssert(try cache.value(for: "Key2") == 2)
+        XCTAssert(try cache.value(for: "Key3") == 3)
+        XCTAssert(try cache.value(for: "Key4") == 4)
+        XCTAssert(try cache.value(for: "Key5") == 5)
+        XCTAssert(try cache.value(for: "Key6") == 6)
 
         cache["Key1"] = 11
-        cache.set(7, for: "Key6")
+        try cache.set(7, for: "Key6")
 
-        XCTAssert(cache.value(for: "Key1") == 11)
-        XCTAssert(cache.value(for: "Key2") == nil)
+        XCTAssert(try cache.value(for: "Key1") == 11)
+        XCTAssert(try cache.value(for: "Key2") == nil)
         XCTAssert(cache["Key6"] == 7)
     }
 }
@@ -66,7 +68,7 @@ extension CacheTests {
             waitExpectation.fulfill()
         }
 
-        waitForExpectations(timeout: 5)
+        waitForExpectations(timeout: 50)
     }
 
     func testImageLoaderRaceCondition() throws {
@@ -114,6 +116,32 @@ extension CacheTests {
 // MARK: - SampleLoader
 
 extension CacheTests {
+    func testSampleLoaderNested() {
+        let waitExpectation = expectation(description: "Waiting")
+
+        let sampleUrls = [
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+        ]
+        
+        let sampleUrls2 = [
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+            "https://tools.learningcontainer.com/sample-json.json",
+        ]
+
+        self.loadSamples(sampleUrls) {
+            self.loadSamples(sampleUrls2) {
+                waitExpectation.fulfill()
+            }
+        }
+
+        waitForExpectations(timeout: 10)
+    }
+    
     func testSampleLoaderRaceCondition() {
         let waitExpectation = expectation(description: "Waiting")
 
@@ -160,7 +188,7 @@ extension CacheTests {
         var finishedCount = 0
         for urlString in imageUrls {
             let url = URL(string: urlString)!
-            self.loader.loadValue(from: url, keepOnlyLatestHandler: false, isLog: true, keyGenerator: { url }) { result, resultUrl in
+            self.loader.loadValue(from: url, key: url.absoluteString) { result, resultUrl in
                 print("Finished Load for: \(urlString)")
                 switch result {
                 case .success(let image):
@@ -183,7 +211,7 @@ extension CacheTests {
         var finishedCount = 0
         for urlString in sampleUrls {
             let url = URL(string: urlString)!
-            self.sampleLoader.loadValue(from: url, keepOnlyLatestHandler: false, isLog: true, keyGenerator: { url }) { result, resultUrl in
+            self.sampleLoader.loadValue(from: url, key: url.absoluteString) { result, resultUrl in
                 print("Finished Load Sample for: \(urlString)")
                 switch result {
                 case .success(let sample):
@@ -203,17 +231,17 @@ extension CacheTests {
     }
 }
 
-class SampleLoader: BaseLoader<URL, Sample> {
-    static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, memoryLimit: 50 * 1024 * 1024)),
+class SampleLoader: BaseLoader<Sample> {
+    static let shared = SampleLoader(cache: Cache(name: "SampleLoader.shared"),
+                                     config: .init(showLog: false, keepOnlyLatestHandler: true),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)
     
-    override func value(from data: Data) -> Sample? {
-        return try? JSONDecoder().decode(Sample.self, from: data)
-    }
-    
-    override init(cache: any Cacheable<URL, Sample>, executeQueue: OperationQueue, receiveQueue: OperationQueue = .main) {
-        super.init(cache: cache, executeQueue: executeQueue, receiveQueue: receiveQueue)
+    override init(cache: any Cacheable<Key, Sample>,
+                  config: CacheLoaderConfig,
+                  executeQueue: OperationQueue,
+                  receiveQueue: OperationQueue = .main) {
+        super.init(cache: cache, config: config, executeQueue: executeQueue, receiveQueue: receiveQueue)
     }
 }
 
@@ -223,4 +251,15 @@ struct Sample: Codable {
     let lastName: String
     let gender: String
     let age: Int
+}
+
+extension Sample: DataTransformable {
+    func toData() throws -> Data {
+        let data = try JSONEncoder().encode(self)
+        return data
+    }
+    
+    static func fromData(_ data: Data) throws -> Sample? {
+        return try? JSONDecoder().decode(Sample.self, from: data)
+    }
 }

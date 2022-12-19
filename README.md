@@ -21,7 +21,7 @@ To install using Swift Package Manage, add this to the `dependencies:` section i
 
 Using **Cache** as follows:
 ```swift
-let cache = Cache<String, Int>(config: .init(countLimit: 5, memoryLimit: 5 * 1024 * 1024))
+let cache = Cache<String, Int>(config: .init(countLimit: 5, totalCostLimit: 5 * 1024 * 1024))
 
 // Set
 cache.set(1, for: "Key1")
@@ -37,7 +37,7 @@ Using of **ImageLoader** as follows:
 ```swift
 let executeQueue = OperationQueue()
 executeQueue.maxConcurrentOperationCount = 6
-let imageLoader = ImageLoader(cache: Cache<URL, UIImage>(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+let imageLoader = ImageLoader(cache: Cache<URL, UIImage>(config: .init(countLimit: 50, totalCostLimit: 50 * 1024 * 1024)),
                             executeQueue: executeQueue,
                             receiveQueue: .main)
 ```
@@ -63,7 +63,7 @@ let cacheImage = ImageLoader.shared.cacheValue(for: url)
 Use also can create your own Cache Loader based on **CacheLoader** protocol or **BaseLoader** class as follows:
 ```swift
 class SampleLoader: BaseLoader<Sample> {
-    static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, memoryLimit: 50 * 1024 * 1024)),
+    static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, totalCostLimit: 50 * 1024 * 1024)),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)
     

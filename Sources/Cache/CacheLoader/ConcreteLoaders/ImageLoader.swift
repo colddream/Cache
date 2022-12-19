@@ -7,8 +7,9 @@
 
 import UIKit
 
-public class ImageLoader: BaseLoader<URL, UIImage> {
-    public static let shared = ImageLoader(cache: Cache<URL, UIImage>(config: .init(countLimit: 50, memoryLimit: 50 * 1024 * 1024)),
+public class ImageLoader: BaseLoader<UIImage> {
+    public static let shared = ImageLoader(cache: Cache(name: "ImageLoader.Shared"),
+                                           config: .init(showLog: false, keepOnlyLatestHandler: true),
                                            executeQueue: ImageLoader.defaultExecuteQueue(),
                                            receiveQueue: .main)
     
@@ -20,5 +21,27 @@ public class ImageLoader: BaseLoader<URL, UIImage> {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 6
         return queue
+    }
+}
+
+// MARK: UIImage - DataTransformable
+extension UIImage: DataTransformable {
+    public func toData() throws -> Data {
+        let data: Data?
+        if let cgImage = self.cgImage, cgImage.renderingIntent == .defaultIntent {
+            data = self.jpegData(compressionQuality: 1.0)
+        } else {
+            data = self.pngData()
+        }
+        
+        if let data = data {
+            return data
+        }
+        
+        throw CustomError(message: "Cannot convert UIImage to data")
+    }
+    
+    public static func fromData(_ data: Data) throws -> Self? {
+        return UIImage(data: data) as? Self
     }
 }

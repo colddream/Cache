@@ -8,126 +8,104 @@
 import Foundation
 
 /// Memory Cache
-public class Cache<Key: Hashable, Value> {
-    private let wrapped = NSCache<WrappedKey, Entry>()
-    private let config: Config
-    private let lock = NSLock()
+public class Cache<Value: DataTransformable> {
+    // MARK: - Predefines
     
-    public init(config: Config) {
-        self.config = config
-        wrapped.countLimit = config.countLimit
-        wrapped.totalCostLimit = config.memoryLimit
+    public typealias Key = String
+    /// Closure that defines the disk cache path from a given path and cacheName.
+    public typealias DiskCachePathClosure = (URL, String) -> URL
+    
+    // MARK: - Storages
+    private let memoryStorage: MemoryStorage<Key, Value>
+    private let diskStorage: DiskStorage<Value>
+    
+    // MARK: Initializers
+
+    /// Creates an `ImageCache` from a customized `MemoryStorage` and `DiskStorage`.
+    ///
+    /// - Parameters:
+    ///   - memoryStorage: The `MemoryStorage.Backend` object to use in the image cache.
+    ///   - diskStorage: The `DiskStorage.Backend` object to use in the image cache.
+    public init(memoryStorage: MemoryStorage<Key, Value>,
+                diskStorage: DiskStorage<Value>) {
+        self.memoryStorage = memoryStorage
+        self.diskStorage = diskStorage
+    }
+    
+    /// Creates an `ImageCache` with a given `name`, cache directory `path`
+    /// and a closure to modify the cache directory.
+    ///
+    /// - Parameters:
+    ///   - name: The name of cache object. It is used to setup disk cache directories and IO queue.
+    ///           You should not use the same `name` for different caches, otherwise, the disk storage would
+    ///           be conflicting to each other.
+    ///   - cacheDirectoryURL: Location of cache directory URL on disk. It will be internally pass to the
+    ///                        initializer of `DiskStorage` as the disk cache directory. If `nil`, the cache
+    ///                        directory under user domain mask will be used.
+    /// - Throws: An error that happens during image cache creating, such as unable to create a directory at the given
+    ///           path.
+    public convenience init(name: String,
+                            cacheDirectoryURL: URL? = nil) {
+        if name.isEmpty {
+            fatalError("[Cache] You should specify a name for the cache. A cache with empty name is not permitted.")
+        }
+
+        // Create default memory storage
+        let memoryStorage = Self.createDefaultMemoryStorage()
+
+        // Create default disk storage
+        
+        do {
+            let diskStorage = try Self.createDefaultDiskStorage(name: name, cacheDirectoryURL: cacheDirectoryURL)
+            self.init(memoryStorage: memoryStorage, diskStorage: diskStorage)
+        } catch {
+            fatalError("[Cache] \(error.localizedDescription)")
+        }
     }
 }
 
 // MARK: - Cacheable
 
 extension Cache: Cacheable {
-    public func set(_ value: Value, for key: Key) {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        if config.showLog {
-            print("Set value: \(value) for key: \(key)")
-        }
-        
-        let entry = Entry(value: value)
-        wrapped.setObject(entry, forKey: WrappedKey(key: key))
+    public func set(_ value: Value, for key: Key) throws {
+        memoryStorage.set(value, for: key)
+        try diskStorage.set(value, for: key)
     }
     
-    public func value(for key: Key) -> Value? {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        if config.showLog {
-            print("Get value for key: \(key)")
+    public func value(for key: Key) throws -> Value? {
+        if let value = memoryStorage.value(for: key) {
+            return value
         }
         
-        let entry = wrapped.object(forKey: WrappedKey(key: key))
-        return entry?.value
+        return try diskStorage.value(for: key)
     }
     
-    public func removeValue(for key: Key) {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        if config.showLog {
-            print("Remove value for key: \(key)")
-        }
-        
-        wrapped.removeObject(forKey: WrappedKey(key: key))
+    public func removeValue(for key: Key) throws {
+        memoryStorage.removeValue(for: key)
+        try diskStorage.removeValue(for: key)
     }
     
-    public func removeAll() {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        if config.showLog {
-            print("Remove All")
-        }
-        
-        wrapped.removeAllObjects()
-    }
-    
-    public subscript(key: Key) -> Value? {
-        get {
-            return value(for: key)
-        }
-        set {
-            guard let value = newValue else {
-                // If nil was assigned using our subscript,
-                // then we remove any value for that key:
-                removeValue(for: key)
-                return
-            }
-
-            set(value, for: key)
-        }
+    public func removeAll() throws {
+        memoryStorage.removeAll()
+        try diskStorage.removeAll()
     }
 }
 
-// MARK: - Define config
+// MARK: - Helper methods
 
-public extension Cache {
-    struct Config {
-        let countLimit: Int     // limit number of cache items
-        let memoryLimit: Int    // limit memory cache in bytes (100 * 1024 * 1024 = 100MB)
-        let showLog: Bool       // To show log or not
-        
-        public init(countLimit: Int, memoryLimit: Int, showLog: Bool = false) {
-            self.countLimit = countLimit
-            self.memoryLimit = memoryLimit
-            self.showLog = showLog
-        }
-    }
-}
-
-// MARK: - Define Key and Value for NSCache
-
-private extension Cache {
-    final class WrappedKey: NSObject {
-        let key: Key
-        init(key: Key) {
-            self.key = key
-        }
-        
-        override var hash: Int {
-            return key.hashValue
-        }
-        
-        override func isEqual(_ object: Any?) -> Bool {
-            guard let another = object as? WrappedKey else {
-                return false
-            }
-            
-            return self.key == another.key
-        }
+extension Cache {
+    private static func createDefaultMemoryStorage() -> MemoryStorage<Key, Value> {
+        let totalMemory = ProcessInfo.processInfo.physicalMemory
+        let costLimit = totalMemory / 4
+        let memoryStorage = MemoryStorage<Key, Value>(config: .init(countLimit: 1000,
+                                                                    totalCostLimit: (costLimit > Int.max) ? Int.max : Int(costLimit)))
+        return memoryStorage
     }
     
-    final class Entry {
-        let value: Value
-        init(value: Value) {
-            self.value = value
-        }
+    private static func createDefaultDiskStorage(name: String, cacheDirectoryURL: URL?) throws -> DiskStorage<Value> {
+        // sizeLimit = 0 => no limit
+        let config = DiskStorage<Value>.Config(name: name, sizeLimit: 0, directory: cacheDirectoryURL)
+        let diskStorage = try DiskStorage<Value>(config: config)
+        return diskStorage
     }
 }

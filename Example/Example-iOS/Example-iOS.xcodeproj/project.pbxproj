@@ -16,7 +16,6 @@
 		962F33402949E80000EAA7CD /* Movie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962F333A2949E80000EAA7CD /* Movie.swift */; };
 		962F33412949E80000EAA7CD /* MoviesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962F333B2949E80000EAA7CD /* MoviesViewController.swift */; };
 		962F33422949E80000EAA7CD /* MovieCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962F333C2949E80000EAA7CD /* MovieCollectionViewCell.swift */; };
-		962F33432949E80000EAA7CD /* SampleLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962F333D2949E80000EAA7CD /* SampleLoader.swift */; };
 		962F33462949E83B00EAA7CD /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = 962F33452949E83B00EAA7CD /* Cache */; };
 /* End PBXBuildFile section */
 
@@ -32,7 +31,6 @@
 		962F333A2949E80000EAA7CD /* Movie.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Movie.swift; sourceTree = "<group>"; };
 		962F333B2949E80000EAA7CD /* MoviesViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MoviesViewController.swift; sourceTree = "<group>"; };
 		962F333C2949E80000EAA7CD /* MovieCollectionViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieCollectionViewCell.swift; sourceTree = "<group>"; };
-		962F333D2949E80000EAA7CD /* SampleLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SampleLoader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,7 +83,6 @@
 				962F333A2949E80000EAA7CD /* Movie.swift */,
 				962F333B2949E80000EAA7CD /* MoviesViewController.swift */,
 				962F333C2949E80000EAA7CD /* MovieCollectionViewCell.swift */,
-				962F333D2949E80000EAA7CD /* SampleLoader.swift */,
 			);
 			path = Movies;
 			sourceTree = "<group>";
@@ -174,7 +171,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				962F33242949E77B00EAA7CD /* AppDelegate.swift in Sources */,
-				962F33432949E80000EAA7CD /* SampleLoader.swift in Sources */,
 				962F33422949E80000EAA7CD /* MovieCollectionViewCell.swift in Sources */,
 				962F33402949E80000EAA7CD /* Movie.swift in Sources */,
 				962F33412949E80000EAA7CD /* MoviesViewController.swift in Sources */,

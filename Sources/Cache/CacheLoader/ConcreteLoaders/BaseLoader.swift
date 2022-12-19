@@ -8,10 +8,13 @@
 import UIKit
 
 /// We can extend this BaseLoader (instead of extending directly ImageLoader protocol) to avoid spending time to create boilerplate properties (cache, executeQueue, ...)
-open class BaseLoader<Key, Value>: CacheLoader {
+open class BaseLoader<Value: DataTransformable>: CacheLoader {
+    public typealias Key = String
     // MARK: - CacheLoader methods
     
     public var cache: any Cacheable<Key, Value>
+    
+    public var config: CacheLoaderConfig
     
     public var executeQueue: OperationQueue
     
@@ -29,9 +32,11 @@ open class BaseLoader<Key, Value>: CacheLoader {
     
     // Init
     public init(cache: any Cacheable<Key, Value>,
+                config: CacheLoaderConfig,
                 executeQueue: OperationQueue,
                 receiveQueue: OperationQueue = .main) {
         self.cache = cache
+        self.config = config
         self.executeQueue = executeQueue
         self.receiveQueue = receiveQueue
         let prefix = String(describing: Self.self)

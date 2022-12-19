@@ -7,17 +7,26 @@
 
 import UIKit
 
+public struct CacheLoaderConfig {
+    // Show log or not
+    public let showLog: Bool
+    
+    // true => just keep the latest handler for pendingHandlers, otherwise keep all handlers
+    public let keepOnlyLatestHandler: Bool
+}
+
 ///
 /// This protocol to support to get value (from data from the server's url) and cache using Cache
 ///
 public protocol CacheLoader: AnyObject {
     associatedtype Key
-    associatedtype Value
+    associatedtype Value: DataTransformable
     typealias Handler = (Result<Value, Error>, URL) -> Void
-    typealias KeyGeneratorHandler = () -> Key
     
     // Cache type to get/store value to cache
     var cache: any Cacheable<Key, Value> { get set }
+    
+    var config: CacheLoaderConfig { get set }
     
     // queue that use to excute to data task operation
     var executeQueue: OperationQueue { get set }
@@ -36,9 +45,6 @@ public protocol CacheLoader: AnyObject {
     
     // This stores pending handlers for the same url (Ex: we may call to load value from url more than one time)
     var pendingHandlers: [URL: [Handler]] { get set }
-    
-    // Get value from data
-    func value(from data: Data) -> Value?
 }
 
 extension CacheLoader {
@@ -84,14 +90,11 @@ extension CacheLoader {
     ///   - isLog: log or not
     ///   - completion: handler
     public func loadValue(from url: URL,
-                          keepOnlyLatestHandler: Bool = false,
-                          isLog: Bool = false,
-                          keyGenerator: KeyGeneratorHandler,
+                          key: Key,
                           completion: @escaping Handler) {
-        let key = keyGenerator()
         if let value = cache[key] {
             receiveQueue.addOperation { [weak self] in
-                self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))", isLog: isLog)
+                self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))")
                 completion(.success(value), url)
             }
             return
@@ -99,11 +102,15 @@ extension CacheLoader {
         
         // Use async with .barrier is supper fast compare with using sync of concurent safeQueue
         // And this way also faster than using serial safeQueue sync/async
-        safeQueue.async(flags: .barrier) {
+        safeQueue.async(flags: .barrier) { [weak self] in
+            guard let self = self else {
+                return
+            }
+            
             // Check if url is already loading
             if self.loadingUrls[url] == true {
-                self.logPrint("[CacheLoader] waiting previous loading value", isLog: isLog)
-                if keepOnlyLatestHandler {
+                self.logPrint("[CacheLoader] waiting previous loading value")
+                if self.config.keepOnlyLatestHandler {
                     self.pendingHandlers[url] = [completion]
                 } else {
                     let preHandlers = self.pendingHandlers[url] ?? []
@@ -115,7 +122,7 @@ extension CacheLoader {
             self.loadingUrls[url] = true
             self.pendingHandlers[url] = [completion]
             
-            self.logPrint("[CacheLoader] Start get value from server (\(url.absoluteString))", isLog: isLog)
+            self.logPrint("[CacheLoader] Start get value from server (\(url.absoluteString))")
             let operation = DataTaskOperation(session: self.session, url: url) { [weak self] data, response, error in
                 guard let self = self else {
                     return
@@ -126,9 +133,9 @@ extension CacheLoader {
                 if let error = error {
                     result = .failure(error)
                     
-                } else if let data = data, let value = self.value(from: data) {
+                } else if let data = data, let value = try? Value.fromData(data) {
                     self.cache[key] = value
-                    self.logPrint("[CacheLoader] value from server (\(url.absoluteString))", isLog: isLog)
+                    self.logPrint("[CacheLoader] value from server (\(url.absoluteString))")
                     result = .success(value)
                     
                 } else {
@@ -142,8 +149,8 @@ extension CacheLoader {
         }
     }
     
-    public func cacheValue(for key: Key) -> Value? {
-        return cache.value(for: key)
+    public func cacheValue(for key: Key) throws -> Value? {
+        return try cache.value(for: key)
     }
     
     /// Remove all pending handlers that you don't want to notify to them anymore
@@ -172,8 +179,8 @@ extension CacheLoader {
     }
     
     /// Remove all cache values
-    public func removeCache() {
-        self.cache.removeAll()
+    public func removeCache() throws {
+        try self.cache.removeAll()
     }
 }
 
@@ -200,8 +207,8 @@ extension CacheLoader {
     }
     
     /// Log
-    private func logPrint(_ items: Any..., separator: String = " ", terminator: String = "\n", isLog: Bool) {
-        if isLog {
+    private func logPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+        if config.showLog {
             print(items, separator: separator, terminator: terminator)
         }
     }
