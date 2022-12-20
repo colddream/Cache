@@ -18,6 +18,7 @@ public class Cache<Value: DataTransformable> {
     // MARK: - Storages
     private let memoryStorage: MemoryStorage<Key, Value>
     private let diskStorage: DiskStorage<Value>
+    private let ioQueue: DispatchQueue
     
     // MARK: Initializers
 
@@ -30,6 +31,9 @@ public class Cache<Value: DataTransformable> {
                 diskStorage: DiskStorage<Value>) {
         self.memoryStorage = memoryStorage
         self.diskStorage = diskStorage
+        
+        let ioQueueName = "com.ipro.Cache.ioQueue.\(UUID().uuidString)"
+        self.ioQueue = DispatchQueue(label: ioQueueName, attributes: .concurrent)
     }
     
     /// Creates an `ImageCache` with a given `name`, cache directory `path`
@@ -69,7 +73,10 @@ public class Cache<Value: DataTransformable> {
 extension Cache: Cacheable {
     public func set(_ value: Value, for key: Key) throws {
         memoryStorage.set(value, for: key)
-        try diskStorage.set(value, for: key)
+        
+        ioQueue.async { [weak self] in
+            try? self?.diskStorage.set(value, for: key)
+        }
     }
     
     public func value(for key: Key) throws -> Value? {
@@ -77,17 +84,33 @@ extension Cache: Cacheable {
             return value
         }
         
-        return try diskStorage.value(for: key)
+        // Get value from disk
+        var value: Value?
+        ioQueue.sync {
+            value = try? diskStorage.value(for: key)
+        }
+        
+        // If exist value from disk => store to memory cache to use later
+        if value != nil {
+            memoryStorage.set(value!, for: key)
+        }
+        
+        return value
     }
     
     public func removeValue(for key: Key) throws {
         memoryStorage.removeValue(for: key)
-        try diskStorage.removeValue(for: key)
+        ioQueue.async { [weak self] in
+            try? self?.diskStorage.removeValue(for: key)
+        }
     }
     
     public func removeAll() throws {
         memoryStorage.removeAll()
-        try diskStorage.removeAll()
+        
+        ioQueue.async { [weak self] in
+            try? self?.diskStorage.removeAll()
+        }
     }
 }
 

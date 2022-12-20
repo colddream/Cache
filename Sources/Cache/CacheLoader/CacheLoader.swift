@@ -92,18 +92,18 @@ extension CacheLoader {
     public func loadValue(from url: URL,
                           key: Key,
                           completion: @escaping Handler) {
-        if let value = cache[key] {
-            receiveQueue.addOperation { [weak self] in
-                self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))")
-                completion(.success(value), url)
-            }
-            return
-        }
-        
         // Use async with .barrier is supper fast compare with using sync of concurent safeQueue
         // And this way also faster than using serial safeQueue sync/async
         safeQueue.async(flags: .barrier) { [weak self] in
             guard let self = self else {
+                return
+            }
+            
+            if let value = self.cache[key] {
+                self.receiveQueue.addOperation { [weak self] in
+                    self?.logPrint("[CacheLoader] value from cache (\(url.absoluteString))")
+                    completion(.success(value), url)
+                }
                 return
             }
             
