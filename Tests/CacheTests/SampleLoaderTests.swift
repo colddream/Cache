@@ -14,7 +14,7 @@ final class SampleLoaderTests: XCTestCase {
     override func setUpWithError() throws {
         let taskQueue = OperationQueue()
         taskQueue.maxConcurrentOperationCount = 6
-        sampleLoader = SampleLoader(cache: Cache(name: "SampleLoader"),
+        sampleLoader = SampleLoader(cache: Cache(type: .cacheInfo(name: "SampleLoader"), config: .init(clearCacheType: .both)),
                                     config: .init(showLog: true, keepOnlyLatestHandler: false),
                                     executeQueue: taskQueue, receiveQueue: .main)
     }
@@ -111,7 +111,7 @@ extension SampleLoaderTests {
 
 
 class SampleLoader: BaseLoader<Sample> {
-    static let shared = SampleLoader(cache: Cache(name: "SampleLoader.shared"),
+    static let shared = SampleLoader(cache: Cache(type: .cacheInfo(name: "SampleLoader.shared"), config: .init(clearCacheType: .both)),
                                      config: .init(showLog: false, keepOnlyLatestHandler: true),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)

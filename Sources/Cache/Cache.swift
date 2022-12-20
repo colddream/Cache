@@ -9,61 +9,45 @@ import Foundation
 
 /// Memory Cache
 public class Cache<Value: DataTransformable> {
-    // MARK: - Predefines
-    
-    public typealias Key = String
-    /// Closure that defines the disk cache path from a given path and cacheName.
-    public typealias DiskCachePathClosure = (URL, String) -> URL
     
     // MARK: - Storages
     private let memoryStorage: MemoryStorage<Key, Value>
     private let diskStorage: DiskStorage<Value>
     private let ioQueue: DispatchQueue
+    private let config: Config
     
     // MARK: Initializers
-
-    /// Creates an `ImageCache` from a customized `MemoryStorage` and `DiskStorage`.
+    
+    /// Creates an `Cache` from a config.
     ///
     /// - Parameters:
     ///   - memoryStorage: The `MemoryStorage.Backend` object to use in the image cache.
     ///   - diskStorage: The `DiskStorage.Backend` object to use in the image cache.
-    public init(memoryStorage: MemoryStorage<Key, Value>,
-                diskStorage: DiskStorage<Value>) {
-        self.memoryStorage = memoryStorage
-        self.diskStorage = diskStorage
-        
+    public init(type: InitType, config: Config) {
         let ioQueueName = "com.ipro.Cache.ioQueue.\(UUID().uuidString)"
         self.ioQueue = DispatchQueue(label: ioQueueName, attributes: .concurrent)
-    }
-    
-    /// Creates an `ImageCache` with a given `name`, cache directory `path`
-    /// and a closure to modify the cache directory.
-    ///
-    /// - Parameters:
-    ///   - name: The name of cache object. It is used to setup disk cache directories and IO queue.
-    ///           You should not use the same `name` for different caches, otherwise, the disk storage would
-    ///           be conflicting to each other.
-    ///   - cacheDirectoryURL: Location of cache directory URL on disk. It will be internally pass to the
-    ///                        initializer of `DiskStorage` as the disk cache directory. If `nil`, the cache
-    ///                        directory under user domain mask will be used.
-    /// - Throws: An error that happens during image cache creating, such as unable to create a directory at the given
-    ///           path.
-    public convenience init(name: String,
-                            cacheDirectoryURL: URL? = nil) {
-        if name.isEmpty {
-            fatalError("[Cache] You should specify a name for the cache. A cache with empty name is not permitted.")
-        }
-
-        // Create default memory storage
-        let memoryStorage = Self.createDefaultMemoryStorage()
-
-        // Create default disk storage
+        self.config = config
         
-        do {
-            let diskStorage = try Self.createDefaultDiskStorage(name: name, cacheDirectoryURL: cacheDirectoryURL)
-            self.init(memoryStorage: memoryStorage, diskStorage: diskStorage)
-        } catch {
-            fatalError("[Cache] \(error.localizedDescription)")
+        switch type {
+        case let .storages(memory, disk):
+            self.memoryStorage = memory
+            self.diskStorage = disk
+        case let .cacheInfo(name, cacheDirectoryUrl):
+            if name.isEmpty {
+                fatalError("[Cache] You should specify a name for the cache. A cache with empty name is not permitted.")
+            }
+            
+            // Create default memory storage
+            let memoryStorage = Self.createDefaultMemoryStorage()
+            self.memoryStorage = memoryStorage
+            
+            // Create default disk storage
+            do {
+                let diskStorage = try Self.createDefaultDiskStorage(name: name, cacheDirectoryURL: cacheDirectoryUrl)
+                self.diskStorage = diskStorage
+            } catch {
+                fatalError("[Cache] \(error.localizedDescription)")
+            }
         }
     }
 }
@@ -106,10 +90,21 @@ extension Cache: Cacheable {
     }
     
     public func removeAll() throws {
-        memoryStorage.removeAll()
-        
-        ioQueue.async { [weak self] in
-            try? self?.diskStorage.removeAll()
+        switch config.clearCacheType {
+        case .both:
+            print("[Cache] Remove Cache from both memory and disk")
+            memoryStorage.removeAll()
+            ioQueue.async { [weak self] in
+                try? self?.diskStorage.removeAll()
+            }
+        case .memoryOnly:
+            print("[Cache] Remove Cache from memory only")
+            memoryStorage.removeAll()
+        case .diskOnly:
+            print("[Cache] Remove Cache from disk only")
+            ioQueue.async { [weak self] in
+                try? self?.diskStorage.removeAll()
+            }
         }
     }
 }
@@ -131,4 +126,40 @@ extension Cache {
         let diskStorage = try DiskStorage<Value>(config: config)
         return diskStorage
     }
+    
+    /// Log
+    private func logPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+        if config.showLog {
+            print(items, separator: separator, terminator: terminator)
+        }
+    }
+}
+
+// MARK: - Predefines
+
+extension Cache {
+    public enum InitType {
+        case storages(memory: MemoryStorage<Key, Value>, disk: DiskStorage<Value>)
+        case cacheInfo(name: String, cacheDirectoryUrl: URL? = nil)
+    }
+    
+    public struct Config {
+        public enum ClearCacheType {
+            case memoryOnly
+            case diskOnly
+            case both
+        }
+        
+        public let clearCacheType: ClearCacheType
+        public let showLog: Bool
+        
+        public init(clearCacheType: ClearCacheType, showLog: Bool = false) {
+            self.clearCacheType = clearCacheType
+            self.showLog = showLog
+        }
+    }
+    
+    public typealias Key = String
+    /// Closure that defines the disk cache path from a given path and cacheName.
+    public typealias DiskCachePathClosure = (URL, String) -> URL
 }

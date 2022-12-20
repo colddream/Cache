@@ -178,6 +178,7 @@ extension CacheLoader {
     
     /// Cancel all operations
     public func cancelAll() {
+        logPrint("[CacheLoader] cancel operations")
         executeQueue.cancelAllOperations()
         safeQueue.sync {
             pendingHandlers.removeAll()
@@ -187,6 +188,7 @@ extension CacheLoader {
     
     /// Remove all cache values
     public func removeCache() throws {
+        logPrint("[CacheLoader] remove all cache")
         try self.cache.removeAll()
     }
 }

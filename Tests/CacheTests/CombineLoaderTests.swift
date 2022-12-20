@@ -15,7 +15,7 @@ final class CombineLoaderTests: XCTestCase {
         // Init ImageLoader
         let taskQueue = OperationQueue()
         taskQueue.maxConcurrentOperationCount = 6
-        loader = ImageLoader(cache: Cache(name: "CombineLoader"),
+        loader = ImageLoader(cache: Cache(type: .cacheInfo(name: "CombineLoader"), config: .init(clearCacheType: .both)),
                              config: .init(showLog: true, keepOnlyLatestHandler: false),
                              executeQueue: taskQueue, receiveQueue: .main)
     }

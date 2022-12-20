@@ -23,7 +23,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private func setupImageCache() {
         let taskQueue = OperationQueue()
         taskQueue.maxConcurrentOperationCount = 6
-        ImageLoader.shared.config(cache: Cache(name: "ImageLoader.Shared.Reconfig"),
+        ImageLoader.shared.config(cache: Cache(type: .cacheInfo(name: "ImageLoader.Shared.Reconfig"),
+                                               config: .init(clearCacheType: .memoryOnly, showLog: true)),
                                   config: .init(showLog: true, keepOnlyLatestHandler: true),
                                   executeQueue: taskQueue)
     }
