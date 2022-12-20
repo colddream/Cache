@@ -13,6 +13,11 @@ public struct CacheLoaderConfig {
     
     // true => just keep the latest handler for pendingHandlers, otherwise keep all handlers
     public let keepOnlyLatestHandler: Bool
+    
+    public init(showLog: Bool, keepOnlyLatestHandler: Bool) {
+        self.showLog = showLog
+        self.keepOnlyLatestHandler = keepOnlyLatestHandler
+    }
 }
 
 ///
@@ -67,8 +72,9 @@ extension CacheLoader {
     ///   - executeQueue: execute queue for data task operations
     ///   - receiveQueue: callback result queue
     public func config(cache: any Cacheable<Key, Value>,
-                executeQueue: OperationQueue,
-                receiveQueue: OperationQueue = .main) {
+                       config: CacheLoaderConfig,
+                       executeQueue: OperationQueue,
+                       receiveQueue: OperationQueue = .main) {
         // Make sure the old operations will be canceled
         self.executeQueue.cancelAllOperations()
         safeQueue.sync {
@@ -78,6 +84,7 @@ extension CacheLoader {
         
         // Setup again
         self.cache = cache
+        self.config = config
         self.executeQueue = executeQueue
         self.receiveQueue = receiveQueue
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
