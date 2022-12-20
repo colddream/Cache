@@ -20,7 +20,7 @@ public class DiskStorage<Value: DataTransformable> {
     ///
     /// - Parameter config: The config used for this disk storage.
     /// - Throws: An error if the folder for storage cannot be got or created.
-    init(config: Config) throws {
+    public init(config: Config) throws {
         self.config = config
         self.directoryURL = config.createFinalDirectoryUrl()
         try prepareDirectory()
