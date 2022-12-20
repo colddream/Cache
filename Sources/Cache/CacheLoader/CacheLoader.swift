@@ -56,6 +56,9 @@ public protocol CacheLoader: AnyObject {
     
     // This stores pending handlers for the same url (Ex: we may call to load value from url more than one time)
     var pendingHandlers: [URL: [Handler]] { get set }
+    
+    // Convert data to Value's instance
+    func value(from data: Data) throws -> Value?
 }
 
 extension CacheLoader {
@@ -66,6 +69,10 @@ extension CacheLoader {
         let config = URLSessionConfiguration.default
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: receiveQueue)
         return session
+    }
+    
+    public func value(from data: Data) throws -> Value? {
+        return try Value.fromData(data)
     }
 }
 
@@ -146,7 +153,7 @@ extension CacheLoader {
                 if let error = error {
                     result = .failure(error)
                     
-                } else if let data = data, let value = try? Value.fromData(data) {
+                } else if let data = data, let value = try? self.value(from: data) {
                     let originalData = self.config.useOriginalData ? data : nil
                     try? self.cache.set(value, originalData: originalData, for: key)
                     
