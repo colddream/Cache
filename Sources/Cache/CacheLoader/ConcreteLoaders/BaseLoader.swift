@@ -43,8 +43,4 @@ open class BaseLoader<Value: DataTransformable>: CacheLoader {
         self.safeQueue = DispatchQueue(label: "\(prefix)_LoaderSafeQueue", attributes: .concurrent)
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
-    
-    open func value(from data: Data) -> Value? {
-        fatalError("Need to implement from sub class")
-    }
 }

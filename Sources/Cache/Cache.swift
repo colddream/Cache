@@ -65,6 +65,7 @@ extension Cache: Cacheable {
     
     public func value(for key: Key) throws -> Value? {
         if let value = memoryStorage.value(for: key) {
+            logPrint("[Cache] value from memory")
             return value
         }
         
@@ -76,6 +77,7 @@ extension Cache: Cacheable {
         
         // If exist value from disk => store to memory cache to use later
         if value != nil {
+            logPrint("[Cache] value from disk")
             memoryStorage.set(value!, for: key)
         }
         
@@ -114,7 +116,7 @@ extension Cache: Cacheable {
 extension Cache {
     private static func createDefaultMemoryStorage() -> MemoryStorage<Key, Value> {
         let totalMemory = ProcessInfo.processInfo.physicalMemory
-        let costLimit = totalMemory / 4
+        let costLimit = totalMemory / 4     //  costLimit = total ram of device / 4
         let memoryStorage = MemoryStorage<Key, Value>(config: .init(countLimit: 1000,
                                                                     totalCostLimit: (costLimit > Int.max) ? Int.max : Int(costLimit)))
         return memoryStorage
