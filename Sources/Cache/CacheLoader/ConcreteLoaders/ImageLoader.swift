@@ -12,6 +12,7 @@ public class ImageLoader: BaseLoader<UIImage> {
                                            config: .init(showLog: false, keepOnlyLatestHandler: true),
                                            executeQueue: ImageLoader.defaultExecuteQueue(),
                                            receiveQueue: .main)
+    
     private static func defaultExecuteQueue() -> OperationQueue {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 6
