@@ -9,7 +9,7 @@ import UIKit
 
 public class ImageLoader: BaseLoader<UIImage> {
     public static let shared = ImageLoader(cache: Cache(type: .cacheInfo(name: "ImageLoader.shared", cacheDirectoryUrl: nil), config: .init(clearCacheType: .both)),
-                                           config: .init(showLog: false, keepOnlyLatestHandler: true),
+                                           config: .init(),
                                            executeQueue: ImageLoader.defaultExecuteQueue(),
                                            receiveQueue: .main)
     

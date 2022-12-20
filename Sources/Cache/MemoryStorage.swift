@@ -23,7 +23,7 @@ public class MemoryStorage<Key: Hashable, Value> {
 // MARK: - Cacheable
 
 extension MemoryStorage: Cacheable {
-    public func set(_ value: Value, for key: Key) {
+    public func set(_ value: Value, originalData: Data?, for key: Key) {
         lock.lock()
         defer { lock.unlock() }
         
@@ -65,7 +65,7 @@ extension MemoryStorage: Cacheable {
                 return
             }
 
-            set(value, for: key)
+            try? set(value, for: key)
         }
     }
 }

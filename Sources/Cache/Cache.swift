@@ -55,11 +55,11 @@ public class Cache<Value: DataTransformable> {
 // MARK: - Cacheable
 
 extension Cache: Cacheable {
-    public func set(_ value: Value, for key: Key) throws {
-        memoryStorage.set(value, for: key)
+    public func set(_ value: Value, originalData: Data?, for key: Key) throws {
+        memoryStorage.set(value, originalData: originalData, for: key)
         
         ioQueue.async { [weak self] in
-            try? self?.diskStorage.set(value, for: key)
+            try? self?.diskStorage.set(value, originalData: originalData, for: key)
         }
     }
     
@@ -78,7 +78,7 @@ extension Cache: Cacheable {
         // If exist value from disk => store to memory cache to use later
         if value != nil {
             logPrint("[Cache] value from disk")
-            memoryStorage.set(value!, for: key)
+            try memoryStorage.set(value!, for: key)
         }
         
         return value

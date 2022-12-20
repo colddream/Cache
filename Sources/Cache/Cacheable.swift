@@ -12,6 +12,10 @@ public protocol Cacheable<Key, Value> {
     associatedtype Key
     associatedtype Value
     
+    // originalData that preresent for value
+    // => for some reasons we need to convert value to data before caching (Ex: disk cache)
+    // => So using exist originalData to avoiding cost/time to convert from value to data
+    func set(_ value: Value, originalData: Data?, for key: Key) throws
     func set(_ value: Value, for key: Key) throws
     func value(for key: Key) throws -> Value?
     func removeValue(for key: Key) throws
@@ -21,6 +25,10 @@ public protocol Cacheable<Key, Value> {
 }
 
 extension Cacheable {
+    public func set(_ value: Value, for key: Key) throws {
+        try set(value, originalData: nil, for: key)
+    }
+
     public subscript(key: Key) -> Value? {
         get {
             return try? value(for: key)

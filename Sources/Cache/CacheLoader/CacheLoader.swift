@@ -14,9 +14,15 @@ public struct CacheLoaderConfig {
     // true => just keep the latest handler for pendingHandlers, otherwise keep all handlers
     public let keepOnlyLatestHandler: Bool
     
-    public init(showLog: Bool, keepOnlyLatestHandler: Bool) {
+    // Use original data for set cache value
+    public let useOriginalData: Bool
+    
+    public init(showLog: Bool = false,
+                keepOnlyLatestHandler: Bool = false,
+                useOriginalData: Bool = false) {
         self.showLog = showLog
         self.keepOnlyLatestHandler = keepOnlyLatestHandler
+        self.useOriginalData = useOriginalData
     }
 }
 
@@ -141,7 +147,9 @@ extension CacheLoader {
                     result = .failure(error)
                     
                 } else if let data = data, let value = try? Value.fromData(data) {
-                    self.cache[key] = value
+                    let originalData = self.config.useOriginalData ? data : nil
+                    try? self.cache.set(value, originalData: originalData, for: key)
+                    
                     self.logPrint("[CacheLoader] value from server (\(url.absoluteString))")
                     result = .success(value)
                     

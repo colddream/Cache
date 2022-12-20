@@ -30,13 +30,17 @@ public class DiskStorage<Value: DataTransformable> {
 // MARK: - Cacheable
 
 extension DiskStorage: Cacheable {
-    public func set(_ value: Value, for key: Key) throws {
+    public func set(_ value: Value, originalData: Data?, for key: Key) throws {
         // Generate data from value
         let data: Data
-        do {
-            data = try value.toData()
-        } catch {
-            throw CacheError.cacheError(reason: .cannotConvertToData(object: value, error: error))
+        if let originalData = originalData {
+            data = originalData
+        } else {
+            do {
+                data = try value.toData()
+            } catch {
+                throw CacheError.cacheError(reason: .cannotConvertToData(object: value, error: error))
+            }
         }
         
         // Generate cache File Url and write data to this file url

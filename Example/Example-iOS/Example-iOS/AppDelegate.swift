@@ -25,7 +25,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         taskQueue.maxConcurrentOperationCount = 6
         ImageLoader.shared.config(cache: Cache(type: .cacheInfo(name: "ImageLoader.Shared.Reconfig"),
                                                config: .init(clearCacheType: .memoryOnly, showLog: true)),
-                                  config: .init(showLog: true, keepOnlyLatestHandler: true),
+                                  config: .init(showLog: true, keepOnlyLatestHandler: true, useOriginalData: true),
                                   executeQueue: taskQueue)
     }
 }
