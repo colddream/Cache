@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Disk storage cache
 public class DiskStorage<Value: DataTransformable> {
     public typealias Key = String
     

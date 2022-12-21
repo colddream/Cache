@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Memory Cache
+/// Memory Storage Cache
 public class MemoryStorage<Key: Hashable, Value> {
     private let wrapped = NSCache<WrappedKey, Entry>()
     private let config: Config

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Memory Cache
+/// Cache class that using both memory and disk for caching
 public class Cache<Value: DataTransformable> {
     
     // MARK: - Storages
