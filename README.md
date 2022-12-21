@@ -37,13 +37,13 @@ Using of **ImageLoader** as follows:
 ```swift
 let executeQueue = OperationQueue()
 executeQueue.maxConcurrentOperationCount = 6
-let imageLoader = ImageLoader(cache: Cache<URL, UIImage>(config: .init(countLimit: 50, totalCostLimit: 50 * 1024 * 1024)),
-                            executeQueue: executeQueue,
-                            receiveQueue: .main)
+let loader = ImageLoader(cache: Cache(type: .cacheInfo(name: "CombineLoader"), config: .init(clearCacheType: .both)),
+                         config: .init(showLog: true, keepOnlyLatestHandler: false),
+                         executeQueue: taskQueue, receiveQueue: .main)
 ```
 
 ```swift
-imageLoader.loadValue(from: url, keepOnlyLatestHandler: true, isLog: true) { result in
+imageLoader.loadValue(from: url, key: url.absoluteString) { result, resultUrl in
     print("Finished Load for: \(urlString)")
     switch result {
     case .success(let image):
@@ -57,22 +57,26 @@ imageLoader.loadValue(from: url, keepOnlyLatestHandler: true, isLog: true) { res
 You can get cache image dirrectly if exist as follows:
 
 ```swift
-let cacheImage = ImageLoader.shared.cacheValue(for: url)
+let cacheImage = try ImageLoader.shared.cacheValue(for: url)
 ```
 
 Use also can create your own Cache Loader based on **CacheLoader** protocol or **BaseLoader** class as follows:
 ```swift
 class SampleLoader: BaseLoader<Sample> {
-    static let shared = SampleLoader(cache: Cache<URL, Sample>(config: .init(countLimit: 100, totalCostLimit: 50 * 1024 * 1024)),
+    static let shared = SampleLoader(cache: Cache(type: .cacheInfo(name: "SampleLoader.shared"), config: .init(clearCacheType: .both)),
+                                     config: .init(showLog: false, keepOnlyLatestHandler: true),
                                      executeQueue: OperationQueue(),
                                      receiveQueue: .main)
     
-    override func value(from data: Data) -> Sample? {
-        return try? JSONDecoder().decode(Sample.self, from: data)
+    override init(cache: any Cacheable<Key, Sample>,
+                  config: CacheLoaderConfig,
+                  executeQueue: OperationQueue,
+                  receiveQueue: OperationQueue = .main) {
+        super.init(cache: cache, config: config, executeQueue: executeQueue, receiveQueue: receiveQueue)
     }
     
-    override init(cache: any Cacheable<URL, Sample>, executeQueue: OperationQueue, receiveQueue: OperationQueue = .main) {
-        super.init(cache: cache, executeQueue: executeQueue, receiveQueue: receiveQueue)
+    override func value(from data: Data) throws -> Sample? {
+        return try Sample.fromData(data)
     }
 }
 
@@ -82,5 +86,16 @@ struct Sample: Codable {
     let lastName: String
     let gender: String
     let age: Int
+}
+
+extension Sample: DataTransformable {
+    func toData() throws -> Data {
+        let data = try JSONEncoder().encode(self)
+        return data
+    }
+    
+    static func fromData(_ data: Data) throws -> Sample? {
+        return try? JSONDecoder().decode(Sample.self, from: data)
+    }
 }
 ```
