@@ -33,7 +33,7 @@ public protocol CacheLoader: AnyObject {
     associatedtype Key
     associatedtype Value: DataTransformable
     typealias Handler = (Result<Value, Error>, URL) -> Void
-    typealias DataTransformableHandler = (Data) throws -> Value
+    typealias DataTransformableHandler = (Data) throws -> Value?
     
     // Cache type to get/store value to cache
     var cache: any Cacheable<Key, Value> { get set }
@@ -70,10 +70,6 @@ extension CacheLoader {
         let config = URLSessionConfiguration.default
         let session = URLSession(configuration: config, delegate: nil, delegateQueue: receiveQueue)
         return session
-    }
-    
-    public func value(from data: Data) throws -> Value? {
-        return try Value.fromData(data)
     }
 }
 

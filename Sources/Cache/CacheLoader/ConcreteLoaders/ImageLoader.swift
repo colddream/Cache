@@ -18,6 +18,10 @@ public class ImageLoader: BaseLoader<UIImage> {
         queue.maxConcurrentOperationCount = 6
         return queue
     }
+    
+    public override func value(from data: Data) throws -> UIImage? {
+        return try UIImage.fromData(data)
+    }
 }
 
 // MARK: UIImage - DataTransformable

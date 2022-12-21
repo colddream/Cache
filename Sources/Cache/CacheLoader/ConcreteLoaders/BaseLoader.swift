@@ -43,4 +43,8 @@ open class BaseLoader<Value: DataTransformable>: CacheLoader {
         self.safeQueue = DispatchQueue(label: "\(prefix)_LoaderSafeQueue", attributes: .concurrent)
         self.session = Self.regenerateSession(receiveQueue: receiveQueue)
     }
+    
+    public func value(from data: Data) throws -> Value? {
+        fatalError("Need to implement this in subclasses")
+    }
 }
