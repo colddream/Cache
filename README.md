@@ -37,9 +37,9 @@ Using of **ImageLoader** as follows:
 ```swift
 let executeQueue = OperationQueue()
 executeQueue.maxConcurrentOperationCount = 6
-let loader = ImageLoader(cache: Cache(type: .cacheInfo(name: "CombineLoader"), config: .init(clearCacheType: .both)),
-                         config: .init(showLog: true, keepOnlyLatestHandler: false),
-                         executeQueue: taskQueue, receiveQueue: .main)
+let imageLoader = ImageLoader(cache: Cache(type: .cacheInfo(name: "CombineLoader"), config: .init(clearCacheType: .both)),
+                              config: .init(showLog: true, keepOnlyLatestHandler: false),
+                              executeQueue: taskQueue, receiveQueue: .main)
 ```
 
 ```swift
