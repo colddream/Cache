@@ -122,6 +122,10 @@ class SampleLoader: BaseLoader<Sample> {
                   receiveQueue: OperationQueue = .main) {
         super.init(cache: cache, config: config, executeQueue: executeQueue, receiveQueue: receiveQueue)
     }
+    
+    override func value(from data: Data) throws -> Sample? {
+        return try Sample.fromData(data)
+    }
 }
 
 // Sample model for that json: https://tools.learningcontainer.com/sample-json.json
