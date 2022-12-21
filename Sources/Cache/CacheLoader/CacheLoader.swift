@@ -33,6 +33,7 @@ public protocol CacheLoader: AnyObject {
     associatedtype Key
     associatedtype Value: DataTransformable
     typealias Handler = (Result<Value, Error>, URL) -> Void
+    typealias DataTransformableHandler = (Data) throws -> Value
     
     // Cache type to get/store value to cache
     var cache: any Cacheable<Key, Value> { get set }
@@ -106,11 +107,12 @@ extension CacheLoader {
     /// Load value from cache (or from server)
     /// - Parameters:
     ///   - url: url to load value
-    ///   - keepOnlyLatestHandler: true => just keep the latest handler for pendingHandlers, otherwise keep all handlers
-    ///   - isLog: log or not
-    ///   - completion: handler
+    ///   - key: key to store cache
+    ///   - dataTransformHanler: the first priority data transform to value
+    ///   - completion: callback
     public func loadValue(from url: URL,
                           key: Key,
+                          dataTransformHanler: DataTransformableHandler? = nil,
                           completion: @escaping Handler) {
         // Use async with .barrier is supper fast compare with using sync of concurent safeQueue
         // And this way also faster than using serial safeQueue sync/async
@@ -153,7 +155,9 @@ extension CacheLoader {
                 if let error = error {
                     result = .failure(error)
                     
-                } else if let data = data, let value = try? self.value(from: data) {
+                } else if let data = data,
+                            let value = try? dataTransformHanler?(data) ?? (try? self.value(from: data)) {
+                    
                     let originalData = self.config.useOriginalData ? data : nil
                     try? self.cache.set(value, originalData: originalData, for: key)
                     
