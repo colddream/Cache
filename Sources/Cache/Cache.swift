@@ -11,8 +11,8 @@ import Foundation
 public class Cache<Value: DataTransformable> {
     
     // MARK: - Storages
-    private let memoryStorage: MemoryStorage<Key, Value>
-    private let diskStorage: DiskStorage<Value>
+    public let memoryStorage: MemoryStorage<Key, Value>
+    public let diskStorage: DiskStorage<Value>
     private let ioQueue: DispatchQueue
     private let config: Config
     

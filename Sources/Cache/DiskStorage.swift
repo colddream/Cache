@@ -112,12 +112,12 @@ extension DiskStorage {
     /// This method does not guarantee there is an image already cached in the returned URL. It just gives your
     /// the URL that the image should be if it exists in disk storage, with the give key.
     ///
-    private func cacheFileURL(forKey key: String) -> URL {
+    public func cacheFileURL(forKey key: String) -> URL {
         let fileName = cacheFileName(forKey: key)
         return directoryURL.appendingPathComponent(fileName, isDirectory: false)
     }
     
-    private func cacheFileName(forKey key: String) -> String {
+    public func cacheFileName(forKey key: String) -> String {
         if config.usesHashedFileName {
             let hashedKey = key.md5
             if let ext = config.pathExtension {
